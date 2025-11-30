@@ -1,6 +1,6 @@
 # OSO DevOps Scoop Bucket
 
-A [Scoop](https://scoop.sh/) bucket for OSO DevOps tools.
+A [Scoop](https://scoop.sh/) bucket for OSO tools.
 
 ## Usage
 
