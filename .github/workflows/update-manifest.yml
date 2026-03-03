@@ -2,16 +2,29 @@ name: Update Scoop Manifest
 
 on:
   repository_dispatch:
-    types: [update-manifest, update-pplx-manifest]
+    types:
+      - update-manifest
+      - update-pplx-manifest
+      - update-xero-manifest
+      - update-td-manifest
+      - update-kafka-backup-monitor-manifest
+      - update-slk-manifest
   workflow_dispatch:
     inputs:
       tag:
         description: 'Release tag (e.g., v0.1.0)'
         required: true
       product:
-        description: 'Product name (kafka-backup or pplx)'
+        description: 'Product name'
         required: true
-        default: kafka-backup
+        type: choice
+        options:
+          - kafka-backup
+          - pplx
+          - xero
+          - td
+          - kafka-backup-monitor
+          - slk
 
 jobs:
   update-kafka-backup:
@@ -19,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Determine tag
         id: tag
         run: |
@@ -28,41 +40,27 @@ jobs:
           else
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           fi
-
-      - name: Update kafka-backup manifest
+      - name: Update manifest
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           VERSION="${TAG#v}"
           mkdir -p bucket
-          curl -sL "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip" -o kafka-backup.zip
-          SHA256=$(sha256sum kafka-backup.zip | cut -d' ' -f1)
-          rm kafka-backup.zip
-
+          curl -sL "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
           cat > bucket/kafka-backup.json << EOF
           {
             "version": "${VERSION}",
             "description": "High-performance Kafka backup and restore with point-in-time recovery",
             "homepage": "https://github.com/osodevops/kafka-backup",
             "license": "MIT",
-            "architecture": {
-              "64bit": {
-                "url": "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip",
-                "hash": "${SHA256}"
-              }
-            },
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
             "bin": "kafka-backup.exe",
             "checkver": "github",
-            "autoupdate": {
-              "architecture": {
-                "64bit": {
-                  "url": "https://github.com/osodevops/kafka-backup/releases/download/v\$version/kafka-backup-x86_64-pc-windows-msvc.zip"
-                }
-              }
-            }
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/v\$version/kafka-backup-x86_64-pc-windows-msvc.zip" } } }
           }
           EOF
-
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
@@ -76,7 +74,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Determine tag
         id: tag
         run: |
@@ -85,45 +82,199 @@ jobs:
           else
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           fi
-
-      - name: Update pplx manifest
+      - name: Update manifest
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           VERSION="${TAG#v}"
           mkdir -p bucket
-          curl -sL "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip" -o pplx.zip
-          SHA256=$(sha256sum pplx.zip | cut -d' ' -f1)
-          rm pplx.zip
-
+          curl -sL "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
           cat > bucket/pplx.json << EOF
           {
             "version": "${VERSION}",
             "description": "A fast Perplexity API CLI built in Rust",
             "homepage": "https://github.com/osodevops/perplexity-cli",
             "license": "MIT",
-            "architecture": {
-              "64bit": {
-                "url": "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip",
-                "hash": "${SHA256}"
-              }
-            },
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
             "bin": "pplx.exe",
             "checkver": "github",
-            "autoupdate": {
-              "architecture": {
-                "64bit": {
-                  "url": "https://github.com/osodevops/perplexity-cli/releases/download/v\$version/pplx-x86_64-pc-windows-msvc.zip"
-                }
-              }
-            }
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/perplexity-cli/releases/download/v\$version/pplx-x86_64-pc-windows-msvc.zip" } } }
           }
           EOF
-
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/pplx.json
           git diff --staged --quiet || git commit -m "Update pplx to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-xero:
+    if: github.event.action == 'update-xero-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'xero')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/xero-cli/releases/download/${TAG}/xero-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/xero.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "A fast, intelligent CLI for the Xero Accounting API",
+            "homepage": "https://github.com/osodevops/xero-cli",
+            "license": "MIT",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/xero-cli/releases/download/${TAG}/xero-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "bin": "xero.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/xero-cli/releases/download/v\$version/xero-x86_64-pc-windows-msvc.zip" } } }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/xero.json
+          git diff --staged --quiet || git commit -m "Update xero to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-td:
+    if: github.event.action == 'update-td-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'td')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/todoist-agent-cli/releases/download/${TAG}/td-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/td.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "Todoist CLI - fast, offline-capable task management",
+            "homepage": "https://github.com/osodevops/todoist-agent-cli",
+            "license": "MIT",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/todoist-agent-cli/releases/download/${TAG}/td-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "bin": "td.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/todoist-agent-cli/releases/download/v\$version/td-x86_64-pc-windows-msvc.zip" } } }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/td.json
+          git diff --staged --quiet || git commit -m "Update td to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-kafka-backup-monitor:
+    if: github.event.action == 'update-kafka-backup-monitor-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'kafka-backup-monitor')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/kafka-backup-cli/releases/download/${TAG}/kafka-backup-monitor-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/kafka-backup-monitor.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "Real-time TUI dashboard for kafka-backup monitoring",
+            "homepage": "https://github.com/osodevops/kafka-backup-cli",
+            "license": "MIT",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup-cli/releases/download/${TAG}/kafka-backup-monitor-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "bin": "kafka-backup-monitor.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup-cli/releases/download/v\$version/kafka-backup-monitor-x86_64-pc-windows-msvc.zip" } } }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/kafka-backup-monitor.json
+          git diff --staged --quiet || git commit -m "Update kafka-backup-monitor to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-slk:
+    if: github.event.action == 'update-slk-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'slk')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/slack-cli/releases/download/${TAG}/slk-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/slk.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "A Rust-based Slack CLI for humans and AI agents",
+            "homepage": "https://github.com/osodevops/slack-cli",
+            "license": "MIT",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/slack-cli/releases/download/${TAG}/slk-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "bin": "slk.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/slack-cli/releases/download/v\$version/slk-x86_64-pc-windows-msvc.zip" } } }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/slk.json
+          git diff --staged --quiet || git commit -m "Update slk to ${{ steps.tag.outputs.tag }}"
           git push
