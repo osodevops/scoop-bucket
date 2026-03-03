@@ -2,15 +2,20 @@ name: Update Scoop Manifest
 
 on:
   repository_dispatch:
-    types: [update-manifest]
+    types: [update-manifest, update-pplx-manifest]
   workflow_dispatch:
     inputs:
       tag:
         description: 'Release tag (e.g., v0.1.0)'
         required: true
+      product:
+        description: 'Product name (kafka-backup or pplx)'
+        required: true
+        default: kafka-backup
 
 jobs:
-  update:
+  update-kafka-backup:
+    if: github.event.action == 'update-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'kafka-backup')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,16 +34,11 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           VERSION="${TAG#v}"
-
-          # Create bucket directory if it doesn't exist
           mkdir -p bucket
-
-          # Download Windows binary and get SHA256
           curl -sL "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip" -o kafka-backup.zip
           SHA256=$(sha256sum kafka-backup.zip | cut -d' ' -f1)
           rm kafka-backup.zip
 
-          # Update manifest
           cat > bucket/kafka-backup.json << EOF
           {
             "version": "${VERSION}",
@@ -56,7 +56,7 @@ jobs:
             "autoupdate": {
               "architecture": {
                 "64bit": {
-                  "url": "https://github.com/osodevops/kafka-backup/releases/download/v$version/kafka-backup-x86_64-pc-windows-msvc.zip"
+                  "url": "https://github.com/osodevops/kafka-backup/releases/download/v\$version/kafka-backup-x86_64-pc-windows-msvc.zip"
                 }
               }
             }
@@ -69,4 +69,61 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/kafka-backup.json
           git diff --staged --quiet || git commit -m "Update kafka-backup to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-pplx:
+    if: github.event.action == 'update-pplx-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'pplx')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update pplx manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip" -o pplx.zip
+          SHA256=$(sha256sum pplx.zip | cut -d' ' -f1)
+          rm pplx.zip
+
+          cat > bucket/pplx.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "A fast Perplexity API CLI built in Rust",
+            "homepage": "https://github.com/osodevops/perplexity-cli",
+            "license": "MIT",
+            "architecture": {
+              "64bit": {
+                "url": "https://github.com/osodevops/perplexity-cli/releases/download/${TAG}/pplx-x86_64-pc-windows-msvc.zip",
+                "hash": "${SHA256}"
+              }
+            },
+            "bin": "pplx.exe",
+            "checkver": "github",
+            "autoupdate": {
+              "architecture": {
+                "64bit": {
+                  "url": "https://github.com/osodevops/perplexity-cli/releases/download/v\$version/pplx-x86_64-pc-windows-msvc.zip"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/pplx.json
+          git diff --staged --quiet || git commit -m "Update pplx to ${{ steps.tag.outputs.tag }}"
           git push
