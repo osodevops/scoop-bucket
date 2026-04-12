@@ -26,6 +26,10 @@ on:
           - kafka-backup-monitor
           - slk
 
+# Required so the workflow can commit and push manifest updates
+permissions:
+  contents: write
+
 jobs:
   update-kafka-backup:
     if: github.event.action == 'update-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'kafka-backup')
