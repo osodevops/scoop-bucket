@@ -50,7 +50,7 @@ jobs:
         run: |
           VERSION="${TAG#v}"
           mkdir -p bucket
-          curl -sL "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip" -o dl.zip
+          curl -sL "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-cli-x86_64-pc-windows-msvc.zip" -o dl.zip
           SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
           rm dl.zip
           cat > bucket/kafka-backup.json << EOF
@@ -59,10 +59,10 @@ jobs:
             "description": "High-performance Kafka backup and restore with point-in-time recovery",
             "homepage": "https://github.com/osodevops/kafka-backup",
             "license": "MIT",
-            "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/${TAG}/kafka-backup-cli-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
             "bin": "kafka-backup.exe",
             "checkver": "github",
-            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/v\$version/kafka-backup-x86_64-pc-windows-msvc.zip" } } }
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/kafka-backup/releases/download/v\$version/kafka-backup-cli-x86_64-pc-windows-msvc.zip" } } }
           }
           EOF
       - name: Commit and push
