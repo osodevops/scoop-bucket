@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "description": "Fast, agent-friendly CLI for Atlassian Jira Cloud",
+  "homepage": "https://github.com/osodevops/jira-cli",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/osodevops/jira-cli/releases/download/v0.1.0/jira-x86_64-pc-windows-msvc.zip",
+      "hash": "7f70859dd5427ac25703d2a7c16f60a221805ac1f895ac43cf8fcf314865b39a"
+    }
+  },
+  "extract_dir": "jira-x86_64-pc-windows-msvc",
+  "bin": "bin\\jira.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/osodevops/jira-cli/releases/download/v$version/jira-x86_64-pc-windows-msvc.zip"
+      }
+    }
+  }
+}
