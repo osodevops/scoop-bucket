@@ -9,6 +9,7 @@ on:
       - update-td-manifest
       - update-kafka-backup-monitor-manifest
       - update-slk-manifest
+      - update-chukei-manifest
   workflow_dispatch:
     inputs:
       tag:
@@ -25,6 +26,7 @@ on:
           - td
           - kafka-backup-monitor
           - slk
+          - chukei
 
 # Required so the workflow can commit and push manifest updates
 permissions:
@@ -281,4 +283,46 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/slk.json
           git diff --staged --quiet || git commit -m "Update slk to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-chukei:
+    if: github.event.action == 'update-chukei-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'chukei')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/chukei/releases/download/${TAG}/chukei-cli-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/chukei.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "Snowflake cost optimization proxy with verified caching",
+            "homepage": "https://github.com/osodevops/chukei",
+            "license": "Apache-2.0",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/chukei/releases/download/${TAG}/chukei-cli-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "bin": "chukei.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/chukei/releases/download/v\$version/chukei-cli-x86_64-pc-windows-msvc.zip" } } }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/chukei.json
+          git diff --staged --quiet || git commit -m "Update chukei to ${{ steps.tag.outputs.tag }}"
           git push
