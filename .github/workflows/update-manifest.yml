@@ -10,6 +10,7 @@ on:
       - update-kafka-backup-monitor-manifest
       - update-slk-manifest
       - update-chukei-manifest
+      - update-teams-manifest
   workflow_dispatch:
     inputs:
       tag:
@@ -27,6 +28,7 @@ on:
           - kafka-backup-monitor
           - slk
           - chukei
+          - teams
 
 # Required so the workflow can commit and push manifest updates
 permissions:
@@ -325,4 +327,47 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/chukei.json
           git diff --staged --quiet || git commit -m "Update chukei to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-teams:
+    if: github.event.action == 'update-teams-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'teams')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p bucket
+          curl -sL "https://github.com/osodevops/ms-teams-cli/releases/download/${TAG}/teams-${TAG}-x86_64-pc-windows-msvc.zip" -o dl.zip
+          SHA256=$(sha256sum dl.zip | cut -d' ' -f1)
+          rm dl.zip
+          cat > bucket/teams.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "Microsoft Teams CLI for AI agents and automation",
+            "homepage": "https://github.com/osodevops/ms-teams-cli",
+            "license": "MIT",
+            "architecture": { "64bit": { "url": "https://github.com/osodevops/ms-teams-cli/releases/download/${TAG}/teams-${TAG}-x86_64-pc-windows-msvc.zip", "hash": "${SHA256}" } },
+            "extract_dir": "teams-${TAG}-x86_64-pc-windows-msvc",
+            "bin": "bin\\\\teams.exe",
+            "checkver": "github",
+            "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/ms-teams-cli/releases/download/v\$version/teams-v\$version-x86_64-pc-windows-msvc.zip" } }, "extract_dir": "teams-v\$version-x86_64-pc-windows-msvc" }
+          }
+          EOF
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/teams.json
+          git diff --staged --quiet || git commit -m "Update teams to ${{ steps.tag.outputs.tag }}"
           git push
