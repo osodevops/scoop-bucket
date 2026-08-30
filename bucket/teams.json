@@ -1,10 +1,10 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Microsoft Teams CLI for AI agents and automation",
   "homepage": "https://github.com/osodevops/ms-teams-cli",
   "license": "MIT",
-  "architecture": { "64bit": { "url": "https://github.com/osodevops/ms-teams-cli/releases/download/v0.5.0/teams-v0.5.0-x86_64-pc-windows-msvc.zip", "hash": "fca1570cc310e133b257d9bce259bf73cb02dfa580bf2e0f32981c013e8a3957" } },
-  "extract_dir": "teams-v0.5.0-x86_64-pc-windows-msvc",
+  "architecture": { "64bit": { "url": "https://github.com/osodevops/ms-teams-cli/releases/download/v0.6.0/teams-v0.6.0-x86_64-pc-windows-msvc.zip", "hash": "58e79835bb9c49bfa182bb25757b9147139d0a55156d90c672dc918dfb988c89" } },
+  "extract_dir": "teams-v0.6.0-x86_64-pc-windows-msvc",
   "bin": "bin\\teams.exe",
   "checkver": "github",
   "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/ms-teams-cli/releases/download/v$version/teams-v$version-x86_64-pc-windows-msvc.zip" } }, "extract_dir": "teams-v$version-x86_64-pc-windows-msvc" }
