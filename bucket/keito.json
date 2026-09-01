@@ -1,0 +1,10 @@
+{
+  "version": "0.1.8",
+  "description": "CLI for AI agents and humans to track billable time against Keito",
+  "homepage": "https://github.com/osodevops/keito-cli",
+  "license": "MIT",
+  "architecture": { "64bit": { "url": "https://github.com/osodevops/keito-cli/releases/download/v0.1.8/keito-x86_64-pc-windows-msvc.zip", "hash": "ba371f84bcc6c7d1a81bdadadc742a8b353036a1c4bbc4fa259d29652cba4d67" } },
+  "bin": "keito.exe",
+  "checkver": "github",
+  "autoupdate": { "architecture": { "64bit": { "url": "https://github.com/osodevops/keito-cli/releases/download/v$version/keito-x86_64-pc-windows-msvc.zip" } } }
+}
