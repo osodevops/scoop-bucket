@@ -16,6 +16,9 @@ scoop install kafka-backup
 
 # Install teams
 scoop install teams
+
+# Install Keito
+scoop install keito
 ```
 
 ## Available Apps
@@ -25,3 +28,4 @@ scoop install teams
 | [chukei](https://github.com/osodevops/chukei) | Snowflake cost optimization proxy with verified caching |
 | [kafka-backup](https://github.com/osodevops/kafka-backup) | High-performance Kafka backup and restore with point-in-time recovery |
 | [teams](https://github.com/osodevops/ms-teams-cli) | Microsoft Teams CLI for AI agents and automation |
+| [keito](https://github.com/osodevops/keito-cli) | Track billable time against Keito from humans and AI agents |
