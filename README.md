@@ -19,6 +19,9 @@ scoop install teams
 
 # Install Keito
 scoop install keito
+
+# Install zdk (Zendesk CLI)
+scoop install zdk
 ```
 
 ## Available Apps
@@ -29,3 +32,4 @@ scoop install keito
 | [kafka-backup](https://github.com/osodevops/kafka-backup) | High-performance Kafka backup and restore with point-in-time recovery |
 | [teams](https://github.com/osodevops/ms-teams-cli) | Microsoft Teams CLI for AI agents and automation |
 | [keito](https://github.com/osodevops/keito-cli) | Track billable time against Keito from humans and AI agents |
+| [zdk](https://github.com/osodevops/zendesk-cli) | Zendesk CLI for AI agents and support operations (OAuth-first, full API coverage) |

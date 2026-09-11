@@ -12,6 +12,7 @@ on:
       - update-chukei-manifest
       - update-teams-manifest
       - update-keito-manifest
+      - update-zdk-manifest
   workflow_dispatch:
     inputs:
       tag:
@@ -31,6 +32,7 @@ on:
           - chukei
           - teams
           - keito
+          - zdk
 
 # Required so the workflow can commit and push manifest updates
 permissions:
@@ -414,4 +416,90 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add bucket/keito.json
           git diff --staged --quiet || git commit -m "Update keito to ${{ steps.tag.outputs.tag }}"
+          git push
+
+  update-zdk:
+    if: github.event.action == 'update-zdk-manifest' || (github.event_name == 'workflow_dispatch' && github.event.inputs.product == 'zdk')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ github.event.client_payload.tag }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            tag="$DISPATCH_TAG"
+          else
+            tag="$INPUT_TAG"
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::invalid release tag: $tag"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          REPO="osodevops/zendesk-cli"
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+          X64_ASSET="zdk-${TAG}-x86_64-pc-windows-msvc.zip"
+          ARM64_ASSET="zdk-${TAG}-aarch64-pc-windows-msvc.zip"
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors "${BASE}/${X64_ASSET}" -o x64.zip
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors "${BASE}/${ARM64_ASSET}" -o arm64.zip
+          X64_SHA256="$(sha256sum x64.zip | cut -d' ' -f1)"
+          ARM64_SHA256="$(sha256sum arm64.zip | cut -d' ' -f1)"
+          rm -f x64.zip arm64.zip
+          mkdir -p bucket
+          cat > bucket/zdk.json << EOF
+          {
+            "version": "${VERSION}",
+            "description": "Zendesk CLI for AI agents and support operations (OAuth-first, full API coverage)",
+            "homepage": "https://github.com/${REPO}",
+            "license": "MIT",
+            "architecture": {
+              "64bit": {
+                "url": "${BASE}/${X64_ASSET}",
+                "hash": "${X64_SHA256}",
+                "extract_dir": "zdk-${TAG}-x86_64-pc-windows-msvc"
+              },
+              "arm64": {
+                "url": "${BASE}/${ARM64_ASSET}",
+                "hash": "${ARM64_SHA256}",
+                "extract_dir": "zdk-${TAG}-aarch64-pc-windows-msvc"
+              }
+            },
+            "bin": "bin\\\\zdk.exe",
+            "checkver": "github",
+            "autoupdate": {
+              "architecture": {
+                "64bit": {
+                  "url": "https://github.com/${REPO}/releases/download/v\$version/zdk-v\$version-x86_64-pc-windows-msvc.zip",
+                  "extract_dir": "zdk-v\$version-x86_64-pc-windows-msvc"
+                },
+                "arm64": {
+                  "url": "https://github.com/${REPO}/releases/download/v\$version/zdk-v\$version-aarch64-pc-windows-msvc.zip",
+                  "extract_dir": "zdk-v\$version-aarch64-pc-windows-msvc"
+                }
+              }
+            }
+          }
+          EOF
+          python3 -m json.tool bucket/zdk.json > /dev/null
+          cat bucket/zdk.json
+      - name: Commit and push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/zdk.json
+          git diff --staged --quiet || git commit -m "Update zdk to ${TAG}"
           git push
